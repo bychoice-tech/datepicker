@@ -3,6 +3,7 @@
   import { tick } from 'svelte';
   import { clickOutside } from './actions';
   import { log } from 'console';
+  console.log('dd');
 
   /**
    * Represents the start date for a date picker.
@@ -263,14 +264,15 @@
    * @param {number} offset - The offset for the first day of the week (0 for Sunday, 1 for Monday, etc.).
    * @returns {Array<Array<number>>} A two-dimensional array representing the calendar.
    */
-  const calendarize = (target, offset = 0) => {
+  const calendarize = (startDate, startOfWeek = 0) => {
     const out = [];
-    const date = new Date(target || new Date());
-    const year = date.getFullYear();
-    const month = date.getMonth();
+    const year = startDate.getFullYear();
+    const month = startDate.getMonth();
     const days = new Date(year, month + 1, 0).getDate(); // days in the current month
 
-    let first = new Date(year, month, 1 - offset).getDay(); // starting day of the week
+    // Adjust to start the week with `startOfWeek`
+    let first = new Date(year, month, 1).getDay(); // starting day of the week
+    let offset = (first - startOfWeek + 7) % 7; // adjust based on startOfWeek
     let prevMonthDays = new Date(year, month, 0).getDate(); // days in the previous month
     let i = 0;
     let week;
@@ -279,7 +281,7 @@
       week = Array(7).fill(null);
       for (let j = 0; j < 7; j++) {
         if (week[j] === null) {
-          if (i === 0 && j < first) {
+          if (i === 0 && j < offset) {
             // Fill in the previous month's dates, adjust month and year accordingly
             let prevMonth = month - 1;
             let prevYear = year;
@@ -287,7 +289,7 @@
               prevMonth = 11; // December of the previous year
               prevYear -= 1;
             }
-            week[j] = [prevMonthDays - (first - j - 1), prevMonth, prevYear, true];
+            week[j] = [prevMonthDays - (offset - j - 1), prevMonth, prevYear, true];
           } else if (i >= days) {
             // Fill in the next month's dates, adjust month and year accordingly
             let nextMonth = month + 1;
@@ -916,6 +918,7 @@
     endDateTime = getHoursAndMinutes(endDate);
     initialize = true;
   }
+  console.log(startDateCalendar);
 </script>
 
 <div class="datepicker" data-picker-theme={theme} use:clickOutside={{ onClickOutside }}>
@@ -984,7 +987,7 @@
           <span class="dow">{dowLabels[(labelIndex + startOfWeek) % 7]}</span>
         {/each}
 
-        {#each { length: 6 } as week, weekIndex (weekIndex)}
+        {#each { length: 6 } as _, weekIndex (weekIndex)}
           {#if startDateCalendar[weekIndex][0]}
             {#each { length: 7 } as d, dayIndex (dayIndex)}
               {#if startDateCalendar[weekIndex][dayIndex][0] !== 0}
