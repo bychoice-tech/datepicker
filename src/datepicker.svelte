@@ -860,6 +860,7 @@
 
     return collection.reduce((acc, date) => {
       let newDates = [];
+      console.log(typeof date);
 
       if (typeof date === 'string') {
         if (date.includes(':')) {
@@ -925,7 +926,7 @@
     initialize = true;
   }
   console.log(startDateCalendar);
-  console.log(enabled);
+  console.log('enabled: ' + enabled);
 </script>
 
 <div class="datepicker" data-picker-theme={theme} use:clickOutside={{ onClickOutside }}>
