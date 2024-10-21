@@ -1102,7 +1102,7 @@
           {/each}
 
           {#each { length: 6 } as week, weekIndex (weekIndex)}
-            {#if endDateCalendar[weekIndex][0]}
+            {#if endDateCalendar[weekIndex] && endDateCalendar[weekIndex][0]}
               {#each { length: 7 } as d, dayIndex (dayIndex)}
                 {#if endDateCalendar[weekIndex][dayIndex][0] !== 0}
                   <button
