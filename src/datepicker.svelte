@@ -1036,7 +1036,7 @@
                     startDateCalendar[weekIndex][dayIndex][0],
                     startDateCalendar[weekIndex][dayIndex][1],
                     startDateCalendar[weekIndex][dayIndex][2]
-                  ) || startDateCalendar[weekIndex][dayIndex][3]}
+                  )}
                   on:mouseenter={(e) =>
                     onMouseEnter(
                       e,
