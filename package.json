@@ -40,6 +40,7 @@
     "javascript"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "start": "vite & npm --prefix ./docs install && npm --prefix ./docs run dev",
     "build": "svelte-package --input ./src && pnpm lint:package",
     "build:docs": "npm --prefix ./docs run build",
