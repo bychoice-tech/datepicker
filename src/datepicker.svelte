@@ -2,6 +2,7 @@
   // @ts-nocheck
   import { tick } from 'svelte';
   import { clickOutside } from './actions';
+  import { log } from 'console';
 
   /**
    * Represents the start date for a date picker.
@@ -256,40 +257,46 @@
   let prevEndDate;
 
   /**
-   * Generates a calendar representation as a two-dimensional array. (Pulled from github.com/lukeed/calendarize)
+   * Generates a calendar representation as a two-dimensional array. (Pulled from https://github.com/lukeed/calendarize)
    *
    * @param {Date} target - The target date for the calendar (defaults to the current date if not provided).
    * @param {number} offset - The offset for the first day of the week (0 for Sunday, 1 for Monday, etc.).
    * @returns {Array<Array<number>>} A two-dimensional array representing the calendar.
    */
-  const calendarize = (target, offset) => {
-    const out = [];
-    const date = new Date(target || new Date());
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const days = new Date(year, month + 1, 0).getDate();
+   const calendarize = (target, offset = 0) => {
+  const out = [];
+  const date = new Date(target || new Date());
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const days = new Date(year, month + 1, 0).getDate(); // days in the current month
 
-    let first = new Date(year, month, 1 - (offset | 0)).getDay();
-    let i = 0;
-    let j = 0;
-    let week;
+  let first = new Date(year, month, 1 - offset).getDay(); // starting day of the week
+  let prevMonthDays = new Date(year, month, 0).getDate(); // days in the previous month
+  let i = 0;
+  let week;
 
-    while (i < days) {
-      for (j = 0, week = Array(7); j < 7; ) {
-        while (j < first) {
-          week[j++] = 0;
+  while (i < days) {
+    week = Array(7).fill(null);
+    for (let j = 0; j < 7; j++) {
+      if (week[j] === null) {
+        if (i === 0 && j < first) {
+          // Fill in the previous month's dates
+          week[j] = prevMonthDays - (first - j - 1);
+        } else if (i >= days) {
+          // Fill in the next month's dates
+          week[j] = i - days + 1;
+          i++;
+        } else {
+          // Fill in the current month's dates
+          week[j] = ++i;
         }
-
-        week[j++] = ++i > days ? 0 : i;
-
-        first = 0;
       }
-
-      out.push(week);
     }
+    out.push(week);
+  }
 
-    return out;
-  };
+  return out;
+};
 
   /**
    * Creates a timestamp for a given year, month, and day.
