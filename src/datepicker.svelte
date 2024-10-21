@@ -865,6 +865,9 @@
       if (typeof date === 'string') {
         if (date.includes(':')) {
           const [rangeStart, rangeEnd] = date.split(':').map((d) => new Date(d));
+          console.log('rangeStart: ', rangeStart);
+          console.log('rangeEnd: ', rangeEnd);
+
           let currentDate = new Date(rangeStart);
 
           while (currentDate <= rangeEnd) {
@@ -926,7 +929,7 @@
     initialize = true;
   }
   console.log(startDateCalendar);
-  console.log('enabled: ' + enabled);
+  console.log('enabled: ', enabled);
 </script>
 
 <div class="datepicker" data-picker-theme={theme} use:clickOutside={{ onClickOutside }}>
