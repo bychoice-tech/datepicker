@@ -655,6 +655,8 @@
    */
   const isDisabled = (day, month, year) => {
     const selectedDateTimestamp = createTimestamp(year, month, day);
+    console.log(selectedDateTimestamp);
+
     return (
       (!enabled && !disabled) ||
       (enabled.length && !enabled.map((d) => new Date(d).getTime()).includes(selectedDateTimestamp)) ||
@@ -920,6 +922,7 @@
     initialize = true;
   }
   console.log(startDateCalendar);
+  console.log(enabled);
 </script>
 
 <div class="datepicker" data-picker-theme={theme} use:clickOutside={{ onClickOutside }}>
