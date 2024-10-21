@@ -856,6 +856,8 @@
    * @returns {number[]} - An array of timestamps.
    */
   const getDatesFromArray = (collection) => {
+    console.log(collection);
+
     return collection.reduce((acc, date) => {
       let newDates = [];
 
@@ -897,8 +899,8 @@
   $: !isRange && (endDate = null);
   $: theme !== null && globalThis.document?.documentElement.setAttribute('data-picker-theme', theme);
   $: disabled = getDatesFromArray(disabledDates);
-  let enabled = getDatesFromArray(enabledDates, true);
-  $: enabled = getDatesFromArray(enabledDates, true);
+  let enabled = getDatesFromArray(enabledDates);
+  $: enabled = getDatesFromArray(enabledDates);
 
   $: if (!startDate && !endDate) {
     startDateYear = Number(defaultYear);
