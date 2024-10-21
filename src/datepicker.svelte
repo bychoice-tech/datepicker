@@ -989,7 +989,7 @@
         {/each}
 
         {#each { length: 6 } as _, weekIndex (weekIndex)}
-          {#if startDateCalendar[weekIndex][0]}
+          {#if startDateCalendar[weekIndex] && startDateCalendar[weekIndex][0]}
             {#each { length: 7 } as d, dayIndex (dayIndex)}
               {#if startDateCalendar[weekIndex][dayIndex][0] !== 0}
                 <button
