@@ -886,6 +886,7 @@
   $: todayDay = today && today.getDate();
   $: todayYear = today && today.getFullYear();
   $: prev = calendarize(new Date(startDateYear, startDateMonth - 1), startOfWeek);
+  let startDateCalendar = calendarize(new Date(startDateYear, startDateMonth), startOfWeek);
   $: startDateCalendar = calendarize(new Date(startDateYear, startDateMonth), startOfWeek);
   $: next = calendarize(new Date(startDateYear, startDateMonth + 1), startOfWeek);
   $: endDateMonth = startDateMonth === 11 ? 0 : startDateMonth + 1;
