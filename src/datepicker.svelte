@@ -897,6 +897,7 @@
   $: !isRange && (endDate = null);
   $: theme !== null && globalThis.document?.documentElement.setAttribute('data-picker-theme', theme);
   $: disabled = getDatesFromArray(disabledDates);
+  let enabled = getDatesFromArray(enabledDates, true);
   $: enabled = getDatesFromArray(enabledDates, true);
 
   $: if (!startDate && !endDate) {
