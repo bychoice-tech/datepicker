@@ -1848,16 +1848,16 @@
   .datepicker .calendars-container .calendar .date.range.first span,
   .datepicker .calendars-container .calendar .date.rangehover:nth-last-child(7n):not(.start):not(.end) span,
   .datepicker .calendars-container .calendar .date.range:nth-last-child(7n):not(.start):not(.end) span {
-    border-bottom-left-radius: 20px;
-    border-top-left-radius: 20px;
+    /*  border-bottom-left-radius: 20px;
+    border-top-left-radius: 20px; */
   }
 
   .datepicker .calendars-container .calendar .date.rangehover.last span,
   .datepicker .calendars-container .calendar .date.range.last span,
   .datepicker .calendars-container .calendar .date.rangehover:nth-child(7n):not(.start):not(.end) span,
   .datepicker .calendars-container .calendar .date.range:nth-child(7n):not(.start):not(.end) span {
-    border-bottom-right-radius: 20px;
-    border-top-right-radius: 20px;
+    /*   border-bottom-right-radius: 20px;
+    border-top-right-radius: 20px; */
   }
 
   .datepicker .calendars-container .calendar .date.rangehover.disabled span,
