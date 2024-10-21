@@ -2,6 +2,7 @@
   // @ts-nocheck
   import { tick } from 'svelte';
   import { clickOutside } from './actions';
+  import { log } from 'console';
 
   /**
    * Represents the start date for a date picker.
@@ -256,35 +257,54 @@
   let prevEndDate;
 
   /**
-   * Generates a calendar representation as a two-dimensional array. (Pulled from github.com/lukeed/calendarize)
+   * Generates a calendar representation as a two-dimensional array. (Pulled from https://github.com/lukeed/calendarize)
    *
    * @param {Date} target - The target date for the calendar (defaults to the current date if not provided).
    * @param {number} offset - The offset for the first day of the week (0 for Sunday, 1 for Monday, etc.).
    * @returns {Array<Array<number>>} A two-dimensional array representing the calendar.
    */
-  const calendarize = (target, offset) => {
+  const calendarize = (startDate, startOfWeek = 0) => {
     const out = [];
-    const date = new Date(target || new Date());
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const days = new Date(year, month + 1, 0).getDate();
+    const year = startDate.getFullYear();
+    const month = startDate.getMonth();
+    const days = new Date(year, month + 1, 0).getDate(); // days in the current month
 
-    let first = new Date(year, month, 1 - (offset | 0)).getDay();
+    // Adjust to start the week with `startOfWeek`
+    let first = new Date(year, month, 1).getDay(); // starting day of the week
+    let offset = (first - startOfWeek + 7) % 7; // adjust based on startOfWeek
+    let prevMonthDays = new Date(year, month, 0).getDate(); // days in the previous month
     let i = 0;
-    let j = 0;
     let week;
 
     while (i < days) {
-      for (j = 0, week = Array(7); j < 7; ) {
-        while (j < first) {
-          week[j++] = 0;
+      week = Array(7).fill(null);
+      for (let j = 0; j < 7; j++) {
+        if (week[j] === null) {
+          if (i === 0 && j < offset) {
+            // Fill in the previous month's dates, adjust month and year accordingly
+            let prevMonth = month - 1;
+            let prevYear = year;
+            if (prevMonth < 0) {
+              prevMonth = 11; // December of the previous year
+              prevYear -= 1;
+            }
+            week[j] = [prevMonthDays - (offset - j - 1), prevMonth, prevYear, true];
+          } else if (i >= days) {
+            // Fill in the next month's dates, adjust month and year accordingly
+            let nextMonth = month + 1;
+            let nextYear = year;
+            if (nextMonth > 11) {
+              nextMonth = 0; // January of the next year
+              nextYear += 1;
+            }
+            week[j] = [i - days + 1, nextMonth, nextYear, true];
+            i++;
+          } else {
+            // Fill in the current month's dates, month is the current month
+            week[j] = [++i, month, year, false];
+          }
         }
-
-        week[j++] = ++i > days ? 0 : i;
-
-        first = 0;
       }
-
       out.push(week);
     }
 
@@ -634,6 +654,7 @@
    */
   const isDisabled = (day, month, year) => {
     const selectedDateTimestamp = createTimestamp(year, month, day);
+
     return (
       (!enabled && !disabled) ||
       (enabled.length && !enabled.map((d) => new Date(d).getTime()).includes(selectedDateTimestamp)) ||
@@ -699,7 +720,7 @@
    * @returns {boolean} - True if it's the last day of the month, false otherwise.
    */
   const isLastDayOfMonth = (day, calendar) => {
-    return day === Math.max(...calendar.flat(10));
+    return day === Math.max(...calendar.flat(10).flat(10));
   };
 
   /**
@@ -835,10 +856,10 @@
   const getDatesFromArray = (collection) => {
     return collection.reduce((acc, date) => {
       let newDates = [];
-
       if (typeof date === 'string') {
         if (date.includes(':')) {
           const [rangeStart, rangeEnd] = date.split(':').map((d) => new Date(d));
+
           let currentDate = new Date(rangeStart);
 
           while (currentDate <= rangeEnd) {
@@ -865,6 +886,7 @@
   $: todayDay = today && today.getDate();
   $: todayYear = today && today.getFullYear();
   $: prev = calendarize(new Date(startDateYear, startDateMonth - 1), startOfWeek);
+  let startDateCalendar = calendarize(new Date(startDateYear, startDateMonth), startOfWeek);
   $: startDateCalendar = calendarize(new Date(startDateYear, startDateMonth), startOfWeek);
   $: next = calendarize(new Date(startDateYear, startDateMonth + 1), startOfWeek);
   $: endDateMonth = startDateMonth === 11 ? 0 : startDateMonth + 1;
@@ -873,7 +895,8 @@
   $: !isRange && (endDate = null);
   $: theme !== null && globalThis.document?.documentElement.setAttribute('data-picker-theme', theme);
   $: disabled = getDatesFromArray(disabledDates);
-  $: enabled = getDatesFromArray(enabledDates, true);
+  let enabled = getDatesFromArray(enabledDates);
+  $: enabled = getDatesFromArray(enabledDates);
 
   $: if (!startDate && !endDate) {
     startDateYear = Number(defaultYear);
@@ -965,30 +988,73 @@
           <span class="dow">{dowLabels[(labelIndex + startOfWeek) % 7]}</span>
         {/each}
 
-        {#each { length: 6 } as week, weekIndex (weekIndex)}
-          {#if startDateCalendar[weekIndex]}
+        {#each { length: 6 } as _, weekIndex (weekIndex)}
+          {#if startDateCalendar[weekIndex] && startDateCalendar[weekIndex][0]}
             {#each { length: 7 } as d, dayIndex (dayIndex)}
-              {#if startDateCalendar[weekIndex][dayIndex] !== 0}
+              {#if startDateCalendar[weekIndex][dayIndex][0] !== 0}
                 <button
                   type="button"
                   class="date"
-                  class:today={isToday(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:start={isFirstInRange(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:end={isLastInRange(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:range={inRange(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:rangehover={inRangeHover(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:past={isPastDate(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:future={isFutureDate(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
-                  class:first={isFirstDayOfMonth(startDateCalendar[weekIndex][dayIndex])}
-                  class:last={isLastDayOfMonth(startDateCalendar[weekIndex][dayIndex], startDateCalendar)}
-                  class:disabled={isDisabled(startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
+                  class:today={isToday(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:start={isFirstInRange(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:end={isLastInRange(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:range={inRange(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:rangehover={inRangeHover(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:past={isPastDate(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:future={isFutureDate(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
+                  class:first={isFirstDayOfMonth(startDateCalendar[weekIndex][dayIndex][0])}
+                  class:last={isLastDayOfMonth(startDateCalendar[weekIndex][dayIndex][0], startDateCalendar)}
+                  class:disabled={isDisabled(
+                    startDateCalendar[weekIndex][dayIndex][0],
+                    startDateCalendar[weekIndex][dayIndex][1],
+                    startDateCalendar[weekIndex][dayIndex][2]
+                  )}
                   on:mouseenter={(e) =>
-                    onMouseEnter(e, startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
+                    onMouseEnter(
+                      e,
+                      startDateCalendar[weekIndex][dayIndex][0],
+                      startDateCalendar[weekIndex][dayIndex][1],
+                      startDateCalendar[weekIndex][dayIndex][2]
+                    )}
                   on:mouseleave={onMouseLeave}
-                  on:click={(e) => onClick(e, startDateCalendar[weekIndex][dayIndex], startDateMonth, startDateYear)}
+                  on:click={(e) =>
+                    onClick(
+                      e,
+                      startDateCalendar[weekIndex][dayIndex][0],
+                      startDateCalendar[weekIndex][dayIndex][1],
+                      startDateCalendar[weekIndex][dayIndex][2]
+                    )}
                   class:norange={isRange && tempEndDate === startDate}
                 >
-                  <span>{startDateCalendar[weekIndex][dayIndex]}</span>
+                  <span>{startDateCalendar[weekIndex][dayIndex][0]}</span>
                 </button>
               {:else}
                 <div class="date other">&nbsp;</div>
@@ -1036,29 +1102,72 @@
           {/each}
 
           {#each { length: 6 } as week, weekIndex (weekIndex)}
-            {#if endDateCalendar[weekIndex]}
+            {#if endDateCalendar[weekIndex] && endDateCalendar[weekIndex][0]}
               {#each { length: 7 } as d, dayIndex (dayIndex)}
-                {#if endDateCalendar[weekIndex][dayIndex] !== 0}
+                {#if endDateCalendar[weekIndex][dayIndex][0] !== 0}
                   <button
                     type="button"
                     class="date"
-                    class:today={isToday(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:range={inRange(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:rangehover={inRangeHover(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:start={isFirstInRange(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:end={isLastInRange(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:past={isPastDate(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:future={isFutureDate(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
-                    class:first={isFirstDayOfMonth(endDateCalendar[weekIndex][dayIndex])}
-                    class:last={isLastDayOfMonth(endDateCalendar[weekIndex][dayIndex], endDateCalendar)}
-                    class:disabled={isDisabled(endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
+                    class:today={isToday(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:range={inRange(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:rangehover={inRangeHover(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:start={isFirstInRange(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:end={isLastInRange(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:past={isPastDate(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:future={isFutureDate(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    )}
+                    class:first={isFirstDayOfMonth(endDateCalendar[weekIndex][dayIndex][0])}
+                    class:last={isLastDayOfMonth(endDateCalendar[weekIndex][dayIndex][0], endDateCalendar)}
+                    class:disabled={isDisabled(
+                      endDateCalendar[weekIndex][dayIndex][0],
+                      endDateCalendar[weekIndex][dayIndex][1],
+                      endDateCalendar[weekIndex][dayIndex][2]
+                    ) || endDateCalendar[weekIndex][dayIndex][3]}
                     on:mouseenter={(e) =>
-                      onMouseEnter(e, endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
+                      onMouseEnter(
+                        e,
+                        endDateCalendar[weekIndex][dayIndex][0],
+                        endDateCalendar[weekIndex][dayIndex][1],
+                        endDateCalendar[weekIndex][dayIndex][2]
+                      )}
                     on:mouseleave={onMouseLeave}
-                    on:click={(e) => onClick(e, endDateCalendar[weekIndex][dayIndex], endDateMonth, endDateYear)}
+                    on:click={(e) =>
+                      onClick(
+                        e,
+                        endDateCalendar[weekIndex][dayIndex][0],
+                        endDateCalendar[weekIndex][dayIndex][1],
+                        endDateCalendar[weekIndex][dayIndex][2]
+                      )}
                     class:norange={isRange && tempEndDate === startDate}
                   >
-                    <span>{endDateCalendar[weekIndex][dayIndex]}</span>
+                    <span>{endDateCalendar[weekIndex][dayIndex][0]}</span>
                   </button>
                 {:else}
                   <div class="date other">&nbsp;</div>
@@ -1729,16 +1838,16 @@
   .datepicker .calendars-container .calendar .date.range.first span,
   .datepicker .calendars-container .calendar .date.rangehover:nth-last-child(7n):not(.start):not(.end) span,
   .datepicker .calendars-container .calendar .date.range:nth-last-child(7n):not(.start):not(.end) span {
-    border-bottom-left-radius: 20px;
-    border-top-left-radius: 20px;
+    /*  border-bottom-left-radius: 20px;
+    border-top-left-radius: 20px; */
   }
 
   .datepicker .calendars-container .calendar .date.rangehover.last span,
   .datepicker .calendars-container .calendar .date.range.last span,
   .datepicker .calendars-container .calendar .date.rangehover:nth-child(7n):not(.start):not(.end) span,
   .datepicker .calendars-container .calendar .date.range:nth-child(7n):not(.start):not(.end) span {
-    border-bottom-right-radius: 20px;
-    border-top-right-radius: 20px;
+    /*   border-bottom-right-radius: 20px;
+    border-top-right-radius: 20px; */
   }
 
   .datepicker .calendars-container .calendar .date.rangehover.disabled span,

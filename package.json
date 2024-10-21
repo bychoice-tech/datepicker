@@ -40,10 +40,11 @@
     "javascript"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "start": "vite & npm --prefix ./docs install && npm --prefix ./docs run dev",
-    "build": "svelte-package --input ./src && pnpm lint:package",
+    "build": "svelte-package --input ./src && npm run lint:package",
     "build:docs": "npm --prefix ./docs run build",
-    "deploy:docs": "pnpm build:docs && npx gh-pages -d docs/build",
+    "deploy:docs": "npm build:docs && npx gh-pages -d docs/build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint -c ./.eslintrc.json --fix \"src/**/*.{test.js,js,ts,json,svelte}\"",
     "lint:package": "publint --strict",
